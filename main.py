@@ -1,59 +1,69 @@
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Query, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 
-def is_prime(n):
+app = FastAPI()
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+def is_prime(n: int) -> bool:
     if n < 2:
         return False
-    for i in range(2, int(n ** 0.5) + 1):
+    for i in range(2, int(n**0.5) + 1):
         if n % i == 0:
             return False
     return True
 
-def is_perfect(n):
-    return sum(i for i in range(1, n) if n % i == 0) == n
+def is_perfect_number(n: int) -> bool:
+    if n <= 0:  # 0 and negative numbers are NOT perfect
+        return False
+    divisors = [i for i in range(1, n) if n % i == 0]
+    return sum(divisors) == n
 
-def is_armstrong(n):
-    digits = [int(d) for d in str(n)]
-    return sum(d ** len(digits) for d in digits) == n
+def is_armstrong(n: int) -> bool:
+    digits = [int(digit) for digit in str(abs(n))]
+    power = len(digits)
+    return sum(d ** power for d in digits) == abs(n)
 
-def classify_number(number):
+def get_number_properties(n: int):
     properties = []
-    if number % 2 == 0:
+    if n % 2 == 0:
         properties.append("even")
     else:
         properties.append("odd")
-    if is_prime(number):
+    if is_prime(n):
         properties.append("prime")
-    if is_perfect(number):
+    if is_perfect_number(n):
         properties.append("perfect")
-    if is_armstrong(number):
+    if is_armstrong(n):
         properties.append("armstrong")
     return properties
 
-app = FastAPI()
-
 @app.get("/api/classify-number")
-def classify_number_api(number: str):
-    if not number.replace(".", "").replace("-", "").isdigit():
-        return JSONResponse(
+async def classify_number(number: str = Query(..., description="Number to classify")):
+    try:
+        n = float(number) if "." in number else int(number)  # Support integers and floats
+    except ValueError:
+        raise HTTPException(
             status_code=400,
-            content={"number": number, "error": "Invalid input. Must be a valid number."}
+            detail={"number": number, "error": "Invalid input. Must be a valid number."},
         )
-    
-    number = float(number)
-    if number.is_integer():
-        number = int(number)
-    
-    properties = classify_number(number)
-    digit_sum = sum(int(digit) for digit in str(abs(number)) if digit.isdigit())
-    fun_fact = requests.get(f"http://numbersapi.com/{number}").text
-    
+
+    properties = get_number_properties(int(n))  # Convert to int for property checks
+    fun_fact_response = requests.get(f"http://numbersapi.com/{n}")
+    fun_fact = fun_fact_response.text if fun_fact_response.status_code == 200 else "No fact available."
+
     return {
-        "number": number,
-        "is_prime": is_prime(number),
-        "is_perfect": is_perfect(number),
+        "number": n,
+        "is_prime": is_prime(int(n)),
+        "is_perfect": is_perfect_number(int(n)),
         "properties": properties,
-        "digit_sum": digit_sum,
-        "fun_fact": fun_fact
+        "digit_sum": sum(int(digit) for digit in str(abs(int(n)))),
+        "fun_fact": fun_fact,
     }
