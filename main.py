@@ -50,10 +50,10 @@ async def classify_number(number: str = Query(..., description="Number to classi
     try:
         n = float(number) if "." in number else int(number)  # Support integers and floats
     except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail={"number": number, "error": "Invalid input. Must be a valid number."},
-        )
+        return {
+            "number": number,
+            "error": "Invalid input. Must be a valid number."
+        }, 400  # Correctly formats 400 response with invalid number included
 
     properties = get_number_properties(int(n))  # Convert to int for property checks
     fun_fact_response = requests.get(f"http://numbersapi.com/{n}")
