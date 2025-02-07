@@ -59,10 +59,13 @@ async def classify_number(number: str = Query(..., description="Number to classi
         n = int(number)
     except ValueError:
         # Return 400 Bad Request for invalid input
-        return {
-            "number": number,  # Include the invalid input exactly as provided
-            "error": True
-        }
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "number": number,  # Include the invalid input exactly as provided
+                "error": True
+            }
+        )
 
     # Get number properties
     properties = get_number_properties(n)
