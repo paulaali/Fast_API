@@ -52,18 +52,12 @@ async def classify_number(number: str = Query(..., description="Number to classi
     except ValueError:
         raise HTTPException(
             status_code=400,
-            detail={"number": number, "error": "Invalid input. Must be a valid number."}
+            detail={
+                "number": number,  # Include the invalid input in the response
+                "error": "Invalid input. Must be a valid number."
+            }
         )
 
     properties = get_number_properties(int(n))  # Convert to int for property checks
     fun_fact_response = requests.get(f"http://numbersapi.com/{n}")
-    fun_fact = fun_fact_response.text if fun_fact_response.status_code == 200 else "No fact available."
-
-    return {
-        "number": n,
-        "is_prime": is_prime(int(n)),
-        "is_perfect": is_perfect_number(int(n)),
-        "properties": properties,
-        "digit_sum": sum(int(digit) for digit in str(abs(int(n)))),
-        "fun_fact": fun_fact,
-    }
+    fun_fact = fun_fact_response.text if fun_fact_response.status_code == 
