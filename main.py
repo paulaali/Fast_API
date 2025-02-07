@@ -37,11 +37,13 @@ def is_armstrong(n):
     return sum(d ** power for d in digits) == abs(n)
 
 @app.get("/api/classify-number")
-async def classify_number(number: float = Query(..., description="Enter a valid number")):
-    try:
-        n = int(number)  # Convert float to int if possible
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid number format")
+async def classify_number(number: str = Query(..., description="Enter a valid number")):
+    if not number.lstrip('-').replace('.', '', 1).isdigit():
+        raise HTTPException(status_code=400, detail="Invalid input. Must be a number.")
+
+    n = float(number)
+    if n.is_integer():
+        n = int(n)
 
     properties = []
     if is_prime(n):
@@ -64,6 +66,6 @@ async def classify_number(number: float = Query(..., description="Enter a valid 
         "is_prime": is_prime(n),
         "is_perfect": is_perfect(n),
         "properties": properties,
-        "digit_sum": sum(map(int, str(abs(n)))),
+        "digit_sum": sum(map(int, str(abs(int(n))))),
         "fun_fact": fun_fact
     }
