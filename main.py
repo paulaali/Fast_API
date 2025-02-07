@@ -40,10 +40,10 @@ def is_armstrong(n):
 async def classify_number(number: str = Query(..., description="Enter a valid number")):
     # Ensure number is a valid numeric value
     if not number.lstrip('-').replace('.', '', 1).isdigit():
-        raise HTTPException(
-            status_code=400,
-            detail={"number": number, "error": "Invalid input. Must be a number."}
-        )
+        return {
+            "number": number, 
+            "error": "Invalid input. Must be a number."
+        }, 400  # Directly returning JSON response with 400 status code.
 
     n = float(number)
     if n.is_integer():
