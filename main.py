@@ -1,68 +1,59 @@
-from fastapi import FastAPI, Query, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+import requests
 
-app = FastAPI()
-
-# Allow CORS (Cross-Origin Resource Sharing)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/api/classify-number")
-async def classify_number(number: str = Query(..., description="Number to classify")):
-    try:
-        num = float(number)  # Convert to float (supports integers & decimals)
-    except ValueError:
-        # If conversion fails, return 400 with the invalid input
-        raise HTTPException(
-            status_code=400,
-            detail={"number": number, "error": "Invalid input. Must be a valid number."}
-        )
-
-    # Determine properties
-    is_prime = check_prime(int(num))
-    is_perfect = check_perfect(int(num))
-    properties = ["odd" if int(num) % 2 != 0 else "even"]
-    digit_sum = sum(int(digit) for digit in str(abs(int(num))))  # Sum of digits
-    fun_fact = get_fun_fact(int(num))
-
-    # Response structure
-    response = {
-        "number": num,
-        "is_prime": is_prime,
-        "is_perfect": is_perfect,
-        "properties": properties,
-        "digit_sum": digit_sum,
-        "fun_fact": fun_fact
-    }
-
-    return response
-
-
-def check_prime(n: int) -> bool:
-    """Check if a number is prime."""
+def is_prime(n):
     if n < 2:
         return False
-    for i in range(2, int(n**0.5) + 1):
+    for i in range(2, int(n ** 0.5) + 1):
         if n % i == 0:
             return False
     return True
 
-
-def check_perfect(n: int) -> bool:
-    """Check if a number is a perfect number."""
-    if n < 1:
-        return False
+def is_perfect(n):
     return sum(i for i in range(1, n) if n % i == 0) == n
 
+def is_armstrong(n):
+    digits = [int(d) for d in str(n)]
+    return sum(d ** len(digits) for d in digits) == n
 
-def get_fun_fact(n: int) -> str:
-    """Fetch a fun fact about the number (basic example)."""
-    if n == 371:
-        return "371 is an Armstrong number because 3^3 + 7^3 + 1^3 = 371."
-    return f"{n} is an interesting number!"
+def classify_number(number):
+    properties = []
+    if number % 2 == 0:
+        properties.append("even")
+    else:
+        properties.append("odd")
+    if is_prime(number):
+        properties.append("prime")
+    if is_perfect(number):
+        properties.append("perfect")
+    if is_armstrong(number):
+        properties.append("armstrong")
+    return properties
 
+app = FastAPI()
+
+@app.get("/api/classify-number")
+def classify_number_api(number: str):
+    if not number.replace(".", "").replace("-", "").isdigit():
+        return JSONResponse(
+            status_code=400,
+            content={"number": number, "error": "Invalid input. Must be a valid number."}
+        )
+    
+    number = float(number)
+    if number.is_integer():
+        number = int(number)
+    
+    properties = classify_number(number)
+    digit_sum = sum(int(digit) for digit in str(abs(number)) if digit.isdigit())
+    fun_fact = requests.get(f"http://numbersapi.com/{number}").text
+    
+    return {
+        "number": number,
+        "is_prime": is_prime(number),
+        "is_perfect": is_perfect(number),
+        "properties": properties,
+        "digit_sum": digit_sum,
+        "fun_fact": fun_fact
+    }
