@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import requests
 
 app = FastAPI()
@@ -59,9 +60,9 @@ async def classify_number(number: str = Query(..., description="Number to classi
         n = int(number)
     except ValueError:
         # Return 400 Bad Request for invalid input
-        raise HTTPException(
+        return JSONResponse(
             status_code=400,
-            detail={
+            content={
                 "number": number,  # Include the invalid input exactly as provided
                 "error": True
             }
