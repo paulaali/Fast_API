@@ -29,7 +29,7 @@ def is_prime(n):
 def is_perfect(n):
     if n < 1:
         return False
-    return sum(i for i in range(1, n) if n % i == 0) == n
+    return sum(i for i in range(1, n)) == n
 
 def is_armstrong(n):
     digits = [int(d) for d in str(abs(n))]
@@ -38,8 +38,12 @@ def is_armstrong(n):
 
 @app.get("/api/classify-number")
 async def classify_number(number: str = Query(..., description="Enter a valid number")):
+    # Ensure number is a valid numeric value
     if not number.lstrip('-').replace('.', '', 1).isdigit():
-        raise HTTPException(status_code=400, detail="Invalid input. Must be a number.")
+        raise HTTPException(
+            status_code=400,
+            detail={"number": number, "error": "Invalid input. Must be a number."}
+        )
 
     n = float(number)
     if n.is_integer():
